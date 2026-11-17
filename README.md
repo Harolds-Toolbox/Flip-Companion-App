@@ -1,4 +1,4 @@
-# PABI Flip Companion
+# PABI Flip Phone Companion
 
 Answer or end WhatsApp calls by opening or closing a compatible Samsung flip phone.
 
