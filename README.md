@@ -4,7 +4,7 @@ Answer or end WhatsApp calls by opening or closing a compatible Samsung flip pho
 
 **[Download the Android installer](https://github.com/Harolds-Toolbox/Flip-Phone-Companion/releases/latest/download/PABI-Flip-Companion.apk)** · [Phone-friendly install guide](https://harolds-toolbox.github.io/Flip-Phone-Companion/)
 
-The installer is a signed Android APK. Download it **on the phone**, open the downloaded file, and confirm Android's installation prompt. Android may ask you to allow your browser or Files app to install apps. This project is distributed directly while a Play Store listing is being prepared.
+The installer is a signed Android APK. Download it **on the phone**, open the downloaded file, and confirm Android's installation prompt. Android may ask you to allow your browser or Files app to install apps. This project is distributed directly while the app is in development.
 
 ## Set up
 
@@ -13,12 +13,12 @@ The installer is a signed Android APK. Download it **on the phone**, open the do
 3. Enable notification access for PABI Flip Companion, then return to the app and tap **Check permissions**.
 4. Choose **Hang up on close** and/or **Answer on open** for audio and video calls.
 
-If Android says notification access is a **restricted setting**, go to **Settings → Apps → PABI Flip Companion → ⋮ → Allow restricted settings**, then return to notification access. Android only offers this control after you choose to trust the app. [Google's instructions](https://support.google.com/android/answer/12623953).
+On some Android phones, notification access is a **restricted setting**. To enable access, open **Settings → Apps → PABI Flip Companion → ⋮ → Allow restricted settings**, then return to notification access. [Google's instructions](https://support.google.com/android/answer/12623953).
 
 ## Compatibility
 
 - Android 11 or newer (`minSdk 30`).
-- A Samsung Galaxy Z Flip with an Android hinge-angle sensor. The call actions were tested on a Samsung SM-F776B; other models have not yet been verified.
+- A Samsung Galaxy Z Flip with an Android hinge-angle sensor. The call actions were tested on a Samsung zFlip 8; other models have not yet been verified.
 - Standard WhatsApp (`com.whatsapp`). WhatsApp Business is not currently supported.
 
 The app can act only after WhatsApp delivers a call notification. It cannot repair delayed WhatsApp calls or messages. WhatsApp may change its notification action labels, which could require an app update.
