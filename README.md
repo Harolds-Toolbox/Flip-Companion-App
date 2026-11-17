@@ -1,17 +1,19 @@
 # PABI Flip Phone Companion
 
-Answer or end WhatsApp calls by opening or closing a compatible Samsung flip phone.
+Answer or end supported app calls by opening or closing a compatible Samsung flip phone.
 
-**[Download the Android installer](https://github.com/Harolds-Toolbox/Flip-Phone-Companion/releases/latest/download/PABI-Flip-Companion.apk)** · [Phone-friendly install guide](https://harolds-toolbox.github.io/Flip-Phone-Companion/)
+**[Download the Android installer (v0.20)](https://github.com/Harolds-Toolbox/Flip-Phone-Companion/releases/download/v0.20/PABI-Flip-Companion.apk)** · [Phone-friendly install guide](https://harolds-toolbox.github.io/Flip-Phone-Companion/)
 
 The installer is a signed Android APK. Download it **on the phone**, open the downloaded file, and confirm Android's installation prompt. Android may ask you to allow your browser or Files app to install apps. This project is distributed directly while the app is in development.
 
 ## Set up
 
 1. Install and open **PABI Flip Companion**.
-2. Open **WhatsApp Calls** and tap **Enable permissions**.
+2. Choose the calling app you want to configure and tap **Enable permissions**.
 3. Enable notification access for PABI Flip Companion, then return to the app and tap **Check permissions**.
-4. Choose **Hang up on close** and/or **Answer on open** for audio and video calls.
+4. Turn on **Answer on open** and/or **Hang up on close**. WhatsApp, Snapchat, Instagram, Facebook Messenger, and Google Meet have separate audio and video controls. Discord has one pair of controls for both call types.
+
+Instagram, Snapchat, and Discord also need **Accessibility access** for Answer on open. Their settings screens include an **Enable answer access** button. A phone with a secure screen lock may still require its passcode before Discord can join a call.
 
 On some Android phones, notification access is a **restricted setting**. To enable access, open **Settings → Apps → PABI Flip Companion → ⋮ → Allow restricted settings**, then return to notification access. [Google's instructions](https://support.google.com/android/answer/12623953).
 
@@ -19,15 +21,15 @@ On some Android phones, notification access is a **restricted setting**. To enab
 
 - Android 11 or newer (`minSdk 30`).
 - A Samsung Galaxy Z Flip with an Android hinge-angle sensor. The call actions were tested on a Samsung zFlip 8; other models have not yet been verified.
-- Standard WhatsApp (`com.whatsapp`). WhatsApp Business is not currently supported.
+- Calls in standard WhatsApp, Snapchat, Instagram, Facebook Messenger, Google Meet, and Discord. WhatsApp Business is not currently supported.
 
-The app can act only after WhatsApp delivers a call notification. It cannot repair delayed WhatsApp calls or messages. WhatsApp may change its notification action labels, which could require an app update.
+The app can act only after the calling app delivers a call notification. It cannot repair delayed calls or messages. Calling apps may change their notification actions or on-screen controls, which could require an update. Discord does not identify incoming voice and video calls separately to the app, so its controls apply to both.
 
 ## Privacy and permissions
 
-Android's notification access permission allows a listener to see notifications broadly. This app's listener filters for WhatsApp call notifications and uses their Answer or End action. It does not have the Android Internet permission or send data to a server. It keeps call state, settings, and limited diagnostics on the device. Raw WhatsApp notification text is not stored in the release build. Accessibility is an optional hang-up fallback and is not required when WhatsApp supplies an End action in its notification.
+Android's notification access permission allows a listener to see notifications broadly. This app's listener filters for supported call notifications and uses their Answer or End action where available. Accessibility is needed to press the in-app Answer control for Instagram, Snapchat, and Discord; it can also be used as a hang-up fallback. The app does not have the Android Internet permission or send data to a server. It keeps call state, settings, and limited diagnostics on the device. Raw notification text is not stored in the release build.
 
-PABI Flip Companion is not affiliated with WhatsApp.
+PABI Flip Companion is not affiliated with the supported calling services.
 
 ## For developers
 

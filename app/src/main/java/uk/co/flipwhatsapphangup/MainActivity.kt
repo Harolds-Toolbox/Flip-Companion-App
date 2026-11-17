@@ -72,18 +72,34 @@ class MainActivity : Activity() {
         brand.addView(brandText, LinearLayout.LayoutParams(0, -2, 1f))
         content.addView(brand)
 
-        content.addView(section("WHATSAPP CALLS"), spaced(dp(32)))
+        content.addView(section("Answer / End Calls by Opening / Closing Flip"), spaced(dp(32)))
+        CallService.entries.forEachIndexed { index, service ->
+            content.addView(serviceCard(service), spaced(if (index == 0) dp(12) else dp(10)))
+        }
+
+    }
+    private fun serviceCard(service: CallService): LinearLayout {
         val callsCard = card().apply {
             isClickable = true
             isFocusable = true
-            contentDescription = "Answer or end WhatsApp calls by opening or closing your flip"
+            contentDescription = "${service.title} call settings${if (service.available) "" else ", coming soon"}"
             setOnClickListener {
-                startActivity(Intent(this@MainActivity, CallSettingsActivity::class.java))
+                startActivity(Intent(this@MainActivity, CallSettingsActivity::class.java)
+                    .putExtra(CallService.EXTRA_SERVICE, service.id))
                 overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
             }
         }
         val callsRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-        callsRow.addView(label("Answer or end WhatsApp calls by opening / closing your flip", 17f, p.text, Typeface.BOLD),
+        callsRow.addView(ImageView(this).apply {
+            setImageResource(service.logo)
+            setPadding(dp(9), dp(9), dp(9), dp(9))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(hex(service.logoColor))
+            }
+            importantForAccessibility = ImageView.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }, LinearLayout.LayoutParams(dp(42), dp(42)).apply { marginEnd = dp(14) })
+        callsRow.addView(label(service.title, 17f, p.text, Typeface.BOLD),
             LinearLayout.LayoutParams(0, -2, 1f))
         callsRow.addView(ImageView(this).apply {
             setImageResource(R.drawable.pabi_chevron)
@@ -91,8 +107,7 @@ class MainActivity : Activity() {
             alpha = .45f
         }, LinearLayout.LayoutParams(dp(14), dp(20)).apply { marginStart = dp(12) })
         callsCard.addView(callsRow)
-        content.addView(callsCard, spaced(dp(9)))
-
+        return callsCard
     }
     private fun card() = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL; setPadding(dp(17), dp(17), dp(17), dp(17))

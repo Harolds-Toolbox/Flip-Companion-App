@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <queries><package android:name="com.whatsapp"/></queries>
+    <queries><package android:name="com.whatsapp"/><package android:name="com.facebook.orca"/><package android:name="com.instagram.android"/><package android:name="com.snapchat.android"/><package android:name="com.google.android.apps.tachyon"/><package android:name="com.discord"/></queries>
     <application android:label="PABI Flip Companion" android:icon="@drawable/pabi_icon" android:roundIcon="@drawable/pabi_icon" android:theme="@style/Theme.FlipWhatsAppHangup" android:allowBackup="false">
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>

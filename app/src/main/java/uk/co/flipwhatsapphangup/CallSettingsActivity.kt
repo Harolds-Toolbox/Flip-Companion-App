@@ -13,6 +13,7 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -26,6 +27,7 @@ import android.widget.Switch
 import android.widget.TextView
 
 class CallSettingsActivity : Activity() {
+    private lateinit var service: CallService
     private data class Palette(val background: Int, val surface: Int, val raised: Int, val text: Int,
                                val muted: Int, val border: Int, val accent: Int, val accentText: Int, val green: Int)
     private val dark get() = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
@@ -41,6 +43,7 @@ class CallSettingsActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        service = CallService.fromId(intent.getStringExtra(CallService.EXTRA_SERVICE))
         window.statusBarColor = p.background
         window.navigationBarColor = p.background
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(p.background) }
@@ -67,18 +70,43 @@ class CallSettingsActivity : Activity() {
             isFocusable = true
             setOnClickListener { goBack() }
         }, LinearLayout.LayoutParams(dp(44), dp(44)).apply { marginEnd = dp(10) })
-        header.addView(label("WhatsApp Calls", 27f, p.text, Typeface.BOLD))
+        header.addView(label("${service.title} Calls", 27f, p.text, Typeface.BOLD).apply {
+            maxLines = 1
+            setAutoSizeTextTypeUniformWithConfiguration(18, 27, 1, TypedValue.COMPLEX_UNIT_SP)
+        }, LinearLayout.LayoutParams(0, -2, 1f))
         content.addView(header)
 
-        content.addView(section("AUDIO CALL"), spaced(dp(26)))
-        content.addView(toggle("Hang up on close", "audio_hang_up"), spaced(dp(9)))
-        content.addView(toggle("Answer on open", "audio_answer"), spaced(dp(9)))
-        content.addView(section("VIDEO CALL"), spaced(dp(28)))
-        content.addView(toggle("Hang up on close", "video_hang_up"), spaced(dp(9)))
-        content.addView(toggle("Answer on open", "video_answer"), spaced(dp(9)))
+        if (!service.available) {
+            content.addView(label("Coming soon — ${service.title} call controls are not available yet.", 14f, p.muted), spaced(dp(12)))
+        }
 
-        content.addView(button("Enable permissions", true) { openNotificationAccess() }, spaced(dp(30)))
-        content.addView(button("Check permissions", false) { showPermissionResult() }, spaced(dp(10)))
+        if (service == CallService.DISCORD) {
+            content.addView(section("CALLS"), spaced(dp(26)))
+            content.addView(toggle("Answer on open", "audio_answer"), spaced(dp(9)))
+            content.addView(toggle("Hang up on close", "audio_hang_up"), spaced(dp(9)))
+        } else {
+            content.addView(section("AUDIO CALL"), spaced(dp(26)))
+            content.addView(toggle("Answer on open", "audio_answer"), spaced(dp(9)))
+            content.addView(toggle("Hang up on close", "audio_hang_up"), spaced(dp(9)))
+            content.addView(section("VIDEO CALL"), spaced(dp(28)))
+            content.addView(toggle("Answer on open", "video_answer"), spaced(dp(9)))
+            content.addView(toggle("Hang up on close", "video_hang_up"), spaced(dp(9)))
+        }
+
+        content.addView(button("Enable permissions", true) { openNotificationAccess() }.apply {
+            isEnabled = service.available
+            if (!service.available) alpha = .5f
+        }, spaced(dp(30)))
+        if (service == CallService.INSTAGRAM || service == CallService.SNAPCHAT || service == CallService.DISCORD) {
+            content.addView(label("${service.title} answering also needs Accessibility access to press its in-app Answer button.", 14f, p.muted), spaced(dp(14)))
+            content.addView(button("Enable ${service.title} answer access", false) {
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            }, spaced(dp(12)))
+        }
+        content.addView(button("Check permissions", false) { showPermissionResult() }.apply {
+            isEnabled = service.available
+            if (!service.available) alpha = .5f
+        }, spaced(dp(10)))
         permissionResult = label("", 14f, p.muted).apply { visibility = View.GONE }
         content.addView(permissionResult, spaced(dp(12)))
 
@@ -110,20 +138,21 @@ class CallSettingsActivity : Activity() {
         }, LinearLayout.LayoutParams(dp(38), dp(38)).apply { marginEnd = dp(13) })
         row.addView(label(title, 16f, p.text), LinearLayout.LayoutParams(0, -2, 1f))
         val control = Switch(this).apply {
-            contentDescription = "${if (key.startsWith("audio")) "Audio" else "Video"} call $title"
-            isChecked = State.option(this@CallSettingsActivity, key)
+            contentDescription = "${service.title} ${if (service == CallService.DISCORD) "call" else if (key.startsWith("audio")) "audio call" else "video call"} $title${if (service.available) "" else ", coming soon"}"
+            isChecked = service.available && State.callOption(this@CallSettingsActivity, service, key)
             val states = arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf())
             thumbTintList = ColorStateList(states, intArrayOf(if (dark) p.green else p.accent, p.muted))
             trackTintList = ColorStateList(states, intArrayOf(if (dark) hex("#355c47") else hex("#b9d7c4"), p.raised))
-            setOnCheckedChangeListener { _, value ->
-                State.setOption(this@CallSettingsActivity, key, value)
+            isEnabled = service.available
+            if (service.available) setOnCheckedChangeListener { _, value ->
+                State.setCallOption(this@CallSettingsActivity, service, key, value)
                 CallListener.instance?.refreshFromSettings()
             }
         }
         row.addView(control)
-        row.isClickable = true
-        row.isFocusable = true
-        row.setOnClickListener { control.toggle() }
+        row.isClickable = service.available
+        row.isFocusable = service.available
+        if (service.available) row.setOnClickListener { control.toggle() }
         return row
     }
     private fun openNotificationAccess() {
@@ -137,9 +166,15 @@ class CallSettingsActivity : Activity() {
         checked = true
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val enabled = manager.isNotificationListenerAccessGranted(ComponentName(this, CallListener::class.java))
-        permissionResult.text = if (enabled) "Permissions enabled" else
-            "Permissions disabled. Allow permissions for calls to be answered or ended on phone open / close."
-        permissionResult.setTextColor(if (enabled) p.green else p.muted)
+        val answerAccess = HangupAccessibility.instance != null
+        val needsAnswerAccess = service in listOf(CallService.INSTAGRAM, CallService.SNAPCHAT, CallService.DISCORD) &&
+            (State.callOption(this, service, "audio_answer") || State.callOption(this, service, "video_answer"))
+        permissionResult.text = when {
+            !enabled -> "Permissions disabled. Allow notification access for calls to be answered or ended on phone open / close."
+            needsAnswerAccess && !answerAccess -> "Notification access enabled. Enable PABI Flip Companion under Accessibility to answer ${service.title} calls on open."
+            else -> "Permissions enabled"
+        }
+        permissionResult.setTextColor(if (enabled && (!needsAnswerAccess || answerAccess)) p.green else p.muted)
         permissionResult.visibility = View.VISIBLE
         permissionResult.accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
     }

@@ -7,8 +7,8 @@ android {
         applicationId = "uk.co.flipwhatsapphangup"
         minSdk = 30
         targetSdk = 36
-        versionCode = 19
-        versionName = "0.19"
+        versionCode = 39
+        versionName = "0.20"
     }
     val releaseKeystore = System.getenv("PABI_FLIP_KEYSTORE")
     if (!releaseKeystore.isNullOrBlank()) {

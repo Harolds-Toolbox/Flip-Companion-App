@@ -26,6 +26,30 @@ object State {
         c.getSharedPreferences(PREF, 0).edit().putBoolean(name, value).apply()
         log(c, "$name=$value")
     }
+    fun callOption(c: Context, service: CallService, name: String): Boolean = when (service) {
+        CallService.WHATSAPP -> option(c, name)
+        CallService.DISCORD -> {
+            val other = if (name.startsWith("audio_")) name.replaceFirst("audio_", "video_")
+                        else name.replaceFirst("video_", "audio_")
+            val prefs = c.getSharedPreferences(PREF, 0)
+            prefs.getBoolean("discord_$name", false) || prefs.getBoolean("discord_$other", false)
+        }
+        else -> c.getSharedPreferences(PREF, 0).getBoolean("${service.id}_$name", false)
+    }
+    fun setCallOption(c: Context, service: CallService, name: String, value: Boolean) {
+        if (service == CallService.WHATSAPP) setOption(c, name, value)
+        else if (service == CallService.DISCORD) {
+            val other = if (name.startsWith("audio_")) name.replaceFirst("audio_", "video_")
+                        else name.replaceFirst("video_", "audio_")
+            c.getSharedPreferences(PREF, 0).edit()
+                .putBoolean("discord_$name", value).putBoolean("discord_$other", value).apply()
+            log(c, "discord_${name.removePrefix("audio_").removePrefix("video_")}=$value (audio and video)")
+        }
+        else {
+            c.getSharedPreferences(PREF, 0).edit().putBoolean("${service.id}_$name", value).apply()
+            log(c, "${service.id}_$name=$value")
+        }
+    }
     fun put(c: Context, key: String, value: String) { c.getSharedPreferences(PREF, 0).edit().putString(key, value).apply() }
     fun get(c: Context, key: String) = c.getSharedPreferences(PREF, 0).getString(key, "Unknown") ?: "Unknown"
     fun log(c: Context, message: String) {
