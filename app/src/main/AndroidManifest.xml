@@ -1,0 +1,16 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <queries><package android:name="com.whatsapp"/></queries>
+    <application android:label="PABI Flip Companion" android:icon="@drawable/pabi_icon" android:roundIcon="@drawable/pabi_icon" android:theme="@style/Theme.FlipWhatsAppHangup" android:allowBackup="false">
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity>
+        <activity android:name=".CallSettingsActivity" android:exported="false" android:parentActivityName=".MainActivity" />
+        <service android:name=".CallListener" android:label="PABI Flip Companion notifications" android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" android:exported="true">
+            <intent-filter><action android:name="android.service.notification.NotificationListenerService"/></intent-filter>
+        </service>
+        <service android:name=".HangupAccessibility" android:label="PABI Flip Companion call control" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:exported="true">
+            <intent-filter><action android:name="android.accessibilityservice.AccessibilityService"/></intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/accessibility_service"/>
+        </service>
+    </application>
+</manifest>

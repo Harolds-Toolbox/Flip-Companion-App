@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.FlipWhatsAppHangup" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:colorAccent">#c9b5ff</item>
+        <item name="android:windowBackground">#11131c</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>
