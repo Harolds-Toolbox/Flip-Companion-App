@@ -2,7 +2,7 @@
 
 Answer or end WhatsApp calls by opening or closing a compatible Samsung flip phone.
 
-**[Download the Android installer](https://github.com/Harolds-Toolbox/Flip-Companion-App/releases/latest/download/PABI-Flip-Companion.apk)** · [Phone-friendly install guide](https://harolds-toolbox.github.io/Flip-Companion-App/)
+**[Download the Android installer](https://github.com/Harolds-Toolbox/Flip-Phone-Companion/releases/latest/download/PABI-Flip-Companion.apk)** · [Phone-friendly install guide](https://harolds-toolbox.github.io/Flip-Phone-Companion/)
 
 The installer is a signed Android APK. Download it **on the phone**, open the downloaded file, and confirm Android's installation prompt. Android may ask you to allow your browser or Files app to install apps. This project is distributed directly while a Play Store listing is being prepared.
 
