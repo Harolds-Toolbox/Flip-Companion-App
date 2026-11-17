@@ -1,6 +1,6 @@
 # PABI Flip Phone Companion
 
-Answer or end calls in supported apps by opening or closing a your Samsung zFlip phone.
+Answer or end calls in supported apps by opening or closing your Samsung zFlip phone.
 
 **[Download the Android installer (v0.20)](https://github.com/Harolds-Toolbox/Flip-Phone-Companion/releases/download/v0.20/PABI-Flip-Companion.apk)** · [Phone-friendly install guide](https://harolds-toolbox.github.io/Flip-Phone-Companion/)
 
