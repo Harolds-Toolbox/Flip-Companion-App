@@ -85,7 +85,7 @@ class CallListener : NotificationListenerService(), SensorEventListener {
             "ongoing" in text -> Phase.ONGOING
             else -> Phase.OUTGOING
         }
-        State.log(this, "WhatsApp ${phase.name.lowercase(Locale.ROOT)} ${kind.name.lowercase(Locale.ROOT)} notification: text='$text' actions='$actions'")
+        State.log(this, "WhatsApp ${phase.name.lowercase(Locale.ROOT)} ${kind.name.lowercase(Locale.ROOT)} call notification detected")
         return Call(sbn, phase, kind)
     }
     private fun configured(c: Call): Boolean {
