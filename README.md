@@ -6,6 +6,10 @@ Answer or end calls in supported apps by opening or closing your Samsung zFlip p
 
 The installer is a signed Android APK. Download it **on the phone**, open the downloaded file, and confirm Android's installation prompt. Android may ask you to allow your browser or Files app to install apps. This project is distributed directly while the app is in development.
 
+**Development diagnostics build:** [Download the separate diagnostics APK (v0.20)](https://github.com/Harolds-Toolbox/Flip-Phone-Companion/releases/download/v0.20-diagnostics.1/PABI-Flip-Companion-Diagnostics.apk). This build installs as **PABI Flip Companion Dev** alongside the public app. In the Dev app, turn on **Send diagnostics** to share structured call events with PABI. Sharing starts off. To stop sharing, turn the switch off; **Delete uploaded diagnostics** removes this installation's records from the server. Records are otherwise deleted after 30 days. Caller names, message text, notification text, phone numbers, and audio are not collected. The development APK is signed with a development key, so future builds signed with a different key may require reinstalling it.
+
+For a clean call test, give notification access to **only one** companion app at a time. The public and Dev apps have separate settings and permissions.
+
 ## Set up
 
 1. Install and open **PABI Flip Companion**.
@@ -27,13 +31,15 @@ The app can act only after the calling app delivers a call notification. It cann
 
 ## Privacy and permissions
 
-Android's notification access permission allows a listener to see notifications broadly. This app's listener filters for supported call notifications and uses their Answer or End action where available. Accessibility is needed to press the in-app Answer control for Instagram, Snapchat, and Discord; it can also be used as a hang-up fallback. The app does not have the Android Internet permission or send data to a server. It keeps call state, settings, and limited diagnostics on the device. Raw notification text is not stored in the release build.
+Android's notification access permission allows a listener to see notifications broadly. This app's listener filters for supported call notifications and uses their Answer or End action where available. Accessibility is needed to press the in-app Answer control for Instagram, Snapchat, and Discord; it can also be used as a hang-up fallback. The **public release APK** does not have the Android Internet permission or send data to a server. It keeps call state, settings, and limited diagnostics on the device. Raw notification text is not stored in the release build. The separate development diagnostics APK has Internet permission, and sends only the structured fields described above when the user enables sharing.
 
 PABI Flip Companion is not affiliated with the supported calling services.
 
 ## For developers
 
 The native Android project is in `app/`, with Gradle wrapper files at the repository root. The launcher and in-app header use the same `app/src/main/res/drawable-nodpi/pabi_icon.png`. Separate design assets are in `design/`.
+
+The optional diagnostics variant can be built with `./gradlew :app:assembleDiagnostics -PpabiDiagnosticsEndpoint=https://pabi-flip-diagnostics.pabiautomations.workers.dev/v1/events`. The intake Worker and D1 schema are in `diagnostics-worker/`. It is deployed to the `harry@pabiautomations.co.uk` Cloudflare account, with a daily retention trigger. The Worker has no public read endpoint; PABI can inspect events in that account's D1 dashboard.
 
 Install JDK 17 and Android SDK Platform/Build Tools 36. Build a debug APK with:
 

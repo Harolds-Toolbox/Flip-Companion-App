@@ -19,6 +19,8 @@ import android.view.WindowInsetsController
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.Switch
+import android.widget.Button
 import android.widget.TextView
 import android.util.TypedValue
 
@@ -77,6 +79,56 @@ class MainActivity : Activity() {
             content.addView(serviceCard(service), spaced(if (index == 0) dp(12) else dp(10)))
         }
 
+        if (BuildConfig.DIAGNOSTICS_BUILD) content.addView(diagnosticsCard(), spaced(dp(28)))
+
+    }
+    override fun onResume() {
+        super.onResume()
+        Diagnostics.flush(this)
+    }
+
+    private fun diagnosticsCard(): LinearLayout = card().apply {
+        addView(section("DEVELOPMENT DIAGNOSTICS"))
+        addView(label("Share call diagnostics", 18f, p.text, Typeface.BOLD), spaced(dp(12)))
+        addView(label(
+            "When enabled, this development build sends the calling app, audio/video state, fold angle, lock state, and actions attempted to PABI. It never sends caller names, notification text, messages, or audio. Records are kept for 30 days.",
+            14f, p.muted), spaced(dp(8)))
+        val toggleRow = LinearLayout(this@MainActivity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        toggleRow.addView(label("Send diagnostics", 16f, p.text), LinearLayout.LayoutParams(0, -2, 1f))
+        val status = label(Diagnostics.status(this@MainActivity), 13f, p.muted)
+        val control = Switch(this@MainActivity).apply {
+            isChecked = Diagnostics.enabled(this@MainActivity)
+            isEnabled = Diagnostics.available()
+            contentDescription = "Send development diagnostics"
+            setOnCheckedChangeListener { _, enabled ->
+                Diagnostics.setEnabled(this@MainActivity, enabled)
+                status.text = Diagnostics.status(this@MainActivity)
+            }
+        }
+        toggleRow.addView(control)
+        addView(toggleRow, spaced(dp(14)))
+        addView(label("Diagnostics ID: ${Diagnostics.installationId(this@MainActivity)}", 12f, p.muted).apply {
+            setTextIsSelectable(true)
+        }, spaced(dp(10)))
+        addView(status, spaced(dp(8)))
+        addView(Button(this@MainActivity).apply {
+            text = "Delete uploaded diagnostics"
+            isAllCaps = false
+            setTextColor(p.accent)
+            background = rounded(p.surface, p.border, 16)
+            setOnClickListener {
+                control.isChecked = false
+                isEnabled = false
+                status.text = "Deleting uploaded diagnostics…"
+                Diagnostics.deleteUploaded(this@MainActivity) { success ->
+                    isEnabled = true
+                    status.text = if (success) "Uploaded diagnostics deleted" else Diagnostics.status(this@MainActivity)
+                }
+            }
+        }, spaced(dp(12)))
     }
     private fun serviceCard(service: CallService): LinearLayout {
         val callsCard = card().apply {

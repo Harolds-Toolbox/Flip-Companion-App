@@ -33,19 +33,28 @@ class CallListener : NotificationListenerService(), SensorEventListener {
     override fun onListenerConnected() {
         instance = this
         State.log(this, "Notification listener connected")
+        Diagnostics.record(this, "listener_connected")
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         hinge = sensorManager?.getDefaultSensor(Sensor.TYPE_HINGE_ANGLE)
         State.log(this, "Hinge sensor: ${hinge?.name ?: "unavailable"}")
+        Diagnostics.record(this, "hinge_sensor", result = if (hinge == null) "missing" else "available")
         refresh()
     }
     override fun onListenerDisconnected() {
         stopSensor()
         instance = null
         State.log(this, "Notification listener disconnected")
+        Diagnostics.record(this, "listener_disconnected")
         requestRebind(ComponentName(this, CallListener::class.java))
     }
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (CallService.fromPackageName(sbn.packageName) != null) {
+            val service = CallService.fromPackageName(sbn.packageName)
+            if (sbn.notification.category == Notification.CATEGORY_CALL ||
+                sbn.notification.channelId?.contains("call", ignoreCase = true) == true ||
+                sbn.notification.channelId?.contains("voip", ignoreCase = true) == true)
+                Diagnostics.record(this, "notification_seen", service, result =
+                    if (isCallNotification(sbn)) "classified" else "unclassified")
             if (sbn.packageName == CallService.MESSENGER.packageName && isCallNotification(sbn) ||
                 sbn.packageName == CallService.INSTAGRAM.packageName &&
                 (isCallNotification(sbn) || sbn.id == 20025) ||
@@ -86,9 +95,15 @@ class CallListener : NotificationListenerService(), SensorEventListener {
             State.put(this, "call", "$phase $kind ${selected.service.title} call")
             if (previous?.sbn?.key != selected.sbn.key || previous?.phase != selected.phase || previous?.kind != selected.kind)
                 State.log(this, "Call candidate: ${selected.service.id} $phase $kind")
+            if (previous?.sbn?.key != selected.sbn.key || previous?.phase != selected.phase || previous?.kind != selected.kind)
+                Diagnostics.record(this, "call_candidate", selected.service, phase, kind)
         } else {
             State.put(this, "call", "No active call")
-            if (previous != null) State.log(this, "Call candidate cleared")
+            if (previous != null) {
+                State.log(this, "Call candidate cleared")
+                Diagnostics.record(this, "call_cleared", previous.service, previous.phase.name.lowercase(Locale.ROOT),
+                    previous.kind.name.lowercase(Locale.ROOT))
+            }
         }
         if (selected != null && selected.kind != Kind.UNKNOWN && configured(selected)) startSensor() else stopSensor()
         if (selected?.phase == Phase.ONGOING && previous?.phase != Phase.ONGOING &&
@@ -165,6 +180,7 @@ class CallListener : NotificationListenerService(), SensorEventListener {
         if (listening || hinge == null) return
         listening = sensorManager?.registerListener(this, hinge, SensorManager.SENSOR_DELAY_NORMAL) == true
         State.log(this, "Hinge monitoring=$listening")
+        Diagnostics.record(this, "hinge_monitoring", result = if (listening) "started" else "failed")
     }
     private fun stopSensor() {
         if (listening) sensorManager?.unregisterListener(this)
@@ -175,10 +191,15 @@ class CallListener : NotificationListenerService(), SensorEventListener {
     }
     override fun onSensorChanged(event: SensorEvent) {
         val angle = event.values[0]
+        val previousAngle = lastAngle
         State.put(this, "fold", "${"%.1f".format(angle)}°")
         if (lastAngle.isNaN() || abs(angle - lastAngle) >= 10 || angle <= 12 && lastAngle > 12)
             State.log(this, "Hinge ${"%.1f".format(angle)}°, openArmed=$openArmed closedArmed=$closedArmed")
         lastAngle = angle
+        if (angle <= 10 && (previousAngle.isNaN() || previousAngle > 10))
+            Diagnostics.record(this, "hinge_closed", call?.service, angle = angle)
+        if (angle >= 160 && (previousAngle.isNaN() || previousAngle < 160))
+            Diagnostics.record(this, "hinge_opened", call?.service, angle = angle)
         if (angle >= 25) openArmed = true
         if (angle <= 10) closedArmed = true
         val selected = call
@@ -186,10 +207,14 @@ class CallListener : NotificationListenerService(), SensorEventListener {
             if (selected.phase == Phase.INCOMING && angle >= 160 && closedArmed) {
                 closedArmed = false
                 State.log(this, "Fully opened: ${selected.phase} ${selected.kind}")
+                Diagnostics.record(this, "answer_trigger", selected.service, "incoming",
+                    selected.kind.name.lowercase(Locale.ROOT), angle)
                 answer(selected)
             } else if (selected.phase == Phase.ONGOING && angle <= 10 && openArmed) {
                 openArmed = false
                 State.log(this, "Fully closed: ${selected.phase} ${selected.kind}")
+                Diagnostics.record(this, "hangup_trigger", selected.service, "ongoing",
+                    selected.kind.name.lowercase(Locale.ROOT), angle)
                 tryHangup(selected)
             }
         }
@@ -200,10 +225,20 @@ class CallListener : NotificationListenerService(), SensorEventListener {
     }
     private fun answer(c: Call) {
         val action = answerAction(c)
-        if (action == null) { State.log(this, "No ${c.service.title} answer notification action"); return }
-        try { action.actionIntent.send(); State.log(this, "Sent notification action: ${action.title}") }
+        if (action == null) {
+            State.log(this, "No ${c.service.title} answer notification action")
+            Diagnostics.record(this, "answer_action", c.service, "incoming", c.kind.name.lowercase(Locale.ROOT), result = "missing")
+            return
+        }
+        try {
+            action.actionIntent.send()
+            State.log(this, "Sent notification action: ${action.title}")
+            Diagnostics.record(this, "answer_action", c.service, "incoming", c.kind.name.lowercase(Locale.ROOT), result = "sent")
+        }
         catch (e: Exception) {
             State.log(this, "Answer action failed: ${e.javaClass.simpleName}: ${e.message}")
+            Diagnostics.record(this, "answer_action", c.service, "incoming", c.kind.name.lowercase(Locale.ROOT),
+                result = if (e is android.app.PendingIntent.CanceledException) "canceled" else "failed")
             if (c.service in listOf(CallService.MESSENGER, CallService.INSTAGRAM, CallService.SNAPCHAT, CallService.GOOGLE_MEET, CallService.DISCORD))
                 retryAnswer(c.sbn.key, c.service)
         }
@@ -251,9 +286,21 @@ class CallListener : NotificationListenerService(), SensorEventListener {
             if (current?.sbn?.key != key || current.phase != Phase.INCOMING || lastAngle < 160) return@postDelayed
             val latest = try { activeNotifications?.firstOrNull { it.key == key } } catch (_: Exception) { null }
             val action = latest?.let { answerAction(current.copy(sbn = it)) }
-            if (action == null) { State.log(this, "${service.title} retry: no current Answer action"); return@postDelayed }
-            try { action.actionIntent.send(); State.log(this, "${service.title} retry sent Answer action") }
-            catch (e: Exception) { State.log(this, "${service.title} retry failed: ${e.javaClass.simpleName}: ${e.message}") }
+            if (action == null) {
+                State.log(this, "${service.title} retry: no current Answer action")
+                Diagnostics.record(this, "answer_retry", service, "incoming", current.kind.name.lowercase(Locale.ROOT), result = "missing")
+                return@postDelayed
+            }
+            try {
+                action.actionIntent.send()
+                State.log(this, "${service.title} retry sent Answer action")
+                Diagnostics.record(this, "answer_retry", service, "incoming", current.kind.name.lowercase(Locale.ROOT), result = "sent")
+            }
+            catch (e: Exception) {
+                State.log(this, "${service.title} retry failed: ${e.javaClass.simpleName}: ${e.message}")
+                Diagnostics.record(this, "answer_retry", service, "incoming", current.kind.name.lowercase(Locale.ROOT),
+                    result = if (e is android.app.PendingIntent.CanceledException) "canceled" else "failed")
+            }
         }, 500L)
     }
     private fun isHangupLabel(label: String): Boolean =
@@ -263,12 +310,25 @@ class CallListener : NotificationListenerService(), SensorEventListener {
             isHangupLabel(it.title?.toString().orEmpty())
         }
         if (action != null) {
-            try { action.actionIntent.send(); State.log(this, "Sent notification action: ${action.title}"); return true }
-            catch (e: Exception) { State.log(this, "Hang-up action failed: ${e.message}") }
+            try {
+                action.actionIntent.send()
+                State.log(this, "Sent notification action: ${action.title}")
+                Diagnostics.record(this, "hangup_action", c.service, "ongoing", c.kind.name.lowercase(Locale.ROOT), result = "sent")
+                return true
+            }
+            catch (e: Exception) {
+                State.log(this, "Hang-up action failed: ${e.message}")
+                Diagnostics.record(this, "hangup_action", c.service, "ongoing", c.kind.name.lowercase(Locale.ROOT),
+                    result = if (e is android.app.PendingIntent.CanceledException) "canceled" else "failed")
+            }
         }
         State.log(this, "No usable notification end action; trying accessibility")
-        if (HangupAccessibility.instance?.tapEndCall(c.service.packageName.orEmpty()) == true) return true
+        if (HangupAccessibility.instance?.tapEndCall(c.service.packageName.orEmpty()) == true) {
+            Diagnostics.record(this, "hangup_accessibility", c.service, "ongoing", c.kind.name.lowercase(Locale.ROOT), result = "clicked")
+            return true
+        }
         State.log(this, "Accessibility could not find end-call button")
+        Diagnostics.record(this, "hangup_accessibility", c.service, "ongoing", c.kind.name.lowercase(Locale.ROOT), result = "missing")
         return false
     }
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
