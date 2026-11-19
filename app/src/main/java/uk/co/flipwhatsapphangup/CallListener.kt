@@ -139,6 +139,9 @@ class CallListener : NotificationListenerService(), SensorEventListener {
             "video" in text || "video" in title -> Kind.VIDEO
             "voice" in text || "audio" in text || "voice" in title || "audio" in title -> Kind.AUDIO
             "video" in actionText || "video" in channel -> Kind.VIDEO
+            // Some Messenger versions omit audio/video labels on incoming call notifications.
+            // Treat an otherwise unmarked call as audio so the hinge listener can run.
+            service == CallService.MESSENGER && n.category == Notification.CATEGORY_CALL -> Kind.AUDIO
             service == CallService.DISCORD && n.category == Notification.CATEGORY_CALL -> Kind.AUDIO
             else -> Kind.UNKNOWN
         }

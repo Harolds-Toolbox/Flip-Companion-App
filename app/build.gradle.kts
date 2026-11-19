@@ -33,7 +33,7 @@ android {
         create("diagnostics") {
             initWith(getByName("debug"))
             applicationIdSuffix = ".diagnostics"
-            versionNameSuffix = "-diagnostics.1"
+            versionNameSuffix = "-diagnostics.2"
             buildConfigField("boolean", "DIAGNOSTICS_BUILD", "true")
             val endpoint = providers.gradleProperty("pabiDiagnosticsEndpoint").orElse("").get()
             buildConfigField("String", "DIAGNOSTICS_ENDPOINT", "\"$endpoint\"")
@@ -41,4 +41,10 @@ android {
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
+}
+
+androidComponents {
+    onVariants(selector().withBuildType("diagnostics")) { variant ->
+        variant.outputs.forEach { it.versionCode.set(40) }
+    }
 }
