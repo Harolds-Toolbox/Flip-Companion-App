@@ -18,7 +18,8 @@ class CallListener : NotificationListenerService(), SensorEventListener {
     companion object { var instance: CallListener? = null }
     private enum class Phase { INCOMING, ONGOING, OUTGOING }
     private enum class Kind { AUDIO, VIDEO, UNKNOWN }
-    private data class Call(val sbn: StatusBarNotification, val service: CallService, val phase: Phase, val kind: Kind)
+    private data class Call(val sbn: StatusBarNotification, val service: CallService, val phase: Phase,
+                            val kind: Kind, val assumedAudio: Boolean)
     private var sensorManager: SensorManager? = null
     private var hinge: Sensor? = null
     private var listening = false
@@ -80,8 +81,7 @@ class CallListener : NotificationListenerService(), SensorEventListener {
             ?: calls.firstOrNull { it.phase == Phase.INCOMING }
         val previous = call
         call = selected
-        if (selected == null && previous != null &&
-            previous.service in listOf(CallService.MESSENGER, CallService.INSTAGRAM, CallService.SNAPCHAT, CallService.GOOGLE_MEET, CallService.DISCORD)) {
+        if (selected == null && previous != null) {
             if (previous.phase == Phase.INCOMING && previous.kind != Kind.UNKNOWN) {
                 recentKind[previous.service] = previous.kind to SystemClock.elapsedRealtime()
             } else if (previous.phase == Phase.ONGOING) {
@@ -93,10 +93,13 @@ class CallListener : NotificationListenerService(), SensorEventListener {
             val phase = selected.phase.name.lowercase(Locale.ROOT)
             val kind = selected.kind.name.lowercase(Locale.ROOT)
             State.put(this, "call", "$phase $kind ${selected.service.title} call")
-            if (previous?.sbn?.key != selected.sbn.key || previous?.phase != selected.phase || previous?.kind != selected.kind)
+            if (previous?.sbn?.key != selected.sbn.key || previous?.phase != selected.phase ||
+                previous?.kind != selected.kind || previous?.assumedAudio != selected.assumedAudio)
                 State.log(this, "Call candidate: ${selected.service.id} $phase $kind")
-            if (previous?.sbn?.key != selected.sbn.key || previous?.phase != selected.phase || previous?.kind != selected.kind)
-                Diagnostics.record(this, "call_candidate", selected.service, phase, kind)
+            if (previous?.sbn?.key != selected.sbn.key || previous?.phase != selected.phase ||
+                previous?.kind != selected.kind || previous?.assumedAudio != selected.assumedAudio)
+                Diagnostics.record(this, "call_candidate", selected.service, phase, kind,
+                    result = if (selected.assumedAudio) "unclassified" else "classified")
         } else {
             State.put(this, "call", "No active call")
             if (previous != null) {
@@ -105,7 +108,7 @@ class CallListener : NotificationListenerService(), SensorEventListener {
                     previous.kind.name.lowercase(Locale.ROOT))
             }
         }
-        if (selected != null && selected.kind != Kind.UNKNOWN && configured(selected)) startSensor() else stopSensor()
+        if (selected != null && configured(selected)) startSensor() else stopSensor()
         if (selected?.phase == Phase.ONGOING && previous?.phase != Phase.ONGOING &&
             lastAngle <= 10 && openArmed) {
             State.log(this, "Call became ongoing after the flip was closed")
@@ -139,10 +142,6 @@ class CallListener : NotificationListenerService(), SensorEventListener {
             "video" in text || "video" in title -> Kind.VIDEO
             "voice" in text || "audio" in text || "voice" in title || "audio" in title -> Kind.AUDIO
             "video" in actionText || "video" in channel -> Kind.VIDEO
-            // Some Messenger versions omit audio/video labels on incoming call notifications.
-            // Treat an otherwise unmarked call as audio so the hinge listener can run.
-            service == CallService.MESSENGER && n.category == Notification.CATEGORY_CALL -> Kind.AUDIO
-            service == CallService.DISCORD && n.category == Notification.CATEGORY_CALL -> Kind.AUDIO
             else -> Kind.UNKNOWN
         }
         val phase = when {
@@ -153,16 +152,18 @@ class CallListener : NotificationListenerService(), SensorEventListener {
                 n.actions?.any { isHangupLabel(it.title?.toString().orEmpty()) } == true -> Phase.ONGOING
             else -> Phase.OUTGOING
         }
-        if (service in listOf(CallService.MESSENGER, CallService.INSTAGRAM, CallService.SNAPCHAT, CallService.GOOGLE_MEET, CallService.DISCORD)) {
-            if (phase == Phase.INCOMING && kind != Kind.UNKNOWN) {
-                recentKind[service] = kind to SystemClock.elapsedRealtime()
-            } else if (phase == Phase.ONGOING && kind == Kind.UNKNOWN &&
-                recentKind[service]?.let { SystemClock.elapsedRealtime() - it.second < 5_000L } == true) {
-                kind = recentKind[service]?.first ?: Kind.UNKNOWN
-            }
+        if (phase == Phase.INCOMING && kind != Kind.UNKNOWN) {
+            recentKind[service] = kind to SystemClock.elapsedRealtime()
+        } else if (phase == Phase.ONGOING && kind == Kind.UNKNOWN &&
+            recentKind[service]?.let { SystemClock.elapsedRealtime() - it.second < 5_000L } == true) {
+            kind = recentKind[service]?.first ?: Kind.UNKNOWN
         }
+        // A call notification without a type marker still needs to use the audio controls.
+        // Keep a recently identified video type when a calling app drops its marker mid-call.
+        val assumedAudio = kind == Kind.UNKNOWN
+        if (assumedAudio) kind = Kind.AUDIO
         State.log(this, "${service.title} ${phase.name.lowercase(Locale.ROOT)} ${kind.name.lowercase(Locale.ROOT)} call notification detected")
-        return Call(sbn, service, phase, kind)
+        return Call(sbn, service, phase, kind, assumedAudio)
     }
     private fun logCallNotification(sbn: StatusBarNotification) {
         val n = sbn.notification

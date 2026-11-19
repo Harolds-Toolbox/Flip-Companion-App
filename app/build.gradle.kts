@@ -33,7 +33,7 @@ android {
         create("diagnostics") {
             initWith(getByName("debug"))
             applicationIdSuffix = ".diagnostics"
-            versionNameSuffix = "-diagnostics.2"
+            versionNameSuffix = "-diagnostics.3"
             buildConfigField("boolean", "DIAGNOSTICS_BUILD", "true")
             val endpoint = providers.gradleProperty("pabiDiagnosticsEndpoint").orElse("").get()
             buildConfigField("String", "DIAGNOSTICS_ENDPOINT", "\"$endpoint\"")
@@ -45,6 +45,6 @@ android {
 
 androidComponents {
     onVariants(selector().withBuildType("diagnostics")) { variant ->
-        variant.outputs.forEach { it.versionCode.set(40) }
+        variant.outputs.forEach { it.versionCode.set(41) }
     }
 }
