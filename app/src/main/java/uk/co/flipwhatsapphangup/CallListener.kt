@@ -143,12 +143,11 @@ class CallListener : NotificationListenerService(), SensorEventListener {
             else -> Kind.UNKNOWN
         }
         val phase = when {
-            CallLabels.incomingText(text) || "incoming" in channel ||
-                actionTitles.any { CallLabels.decline(it) || CallLabels.answer(it, kind == Kind.VIDEO,
-                    service == CallService.GOOGLE_MEET || service == CallService.DISCORD) } -> Phase.INCOMING
-            CallLabels.ongoingText(text) || service == CallService.MESSENGER && "voip" in channel ||
-                (service == CallService.INSTAGRAM || service == CallService.SNAPCHAT || service == CallService.GOOGLE_MEET || service == CallService.DISCORD) &&
-                actionTitles.any(CallLabels::hangup) -> Phase.ONGOING
+            actionTitles.any(CallLabels::hangup) || CallLabels.ongoingText(text) -> Phase.ONGOING
+            actionTitles.any { CallLabels.decline(it) || CallLabels.answer(it, video = false,
+                join = service == CallService.GOOGLE_MEET || service == CallService.DISCORD) } -> Phase.INCOMING
+            CallLabels.incomingText(text) || "incoming" in channel -> Phase.INCOMING
+            service == CallService.MESSENGER && "voip" in channel -> Phase.ONGOING
             else -> Phase.OUTGOING
         }
         if (phase == Phase.INCOMING && kind != Kind.UNKNOWN) {

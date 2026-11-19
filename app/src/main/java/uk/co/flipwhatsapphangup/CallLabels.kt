@@ -43,7 +43,9 @@ internal object CallLabels {
         return videoAnswers.any { it.length >= 3 && it in value } || "video" in value
     }
 
+    // Match the complete translated phrase. A shared word such as Greek "κλήση"
+    // (call) appears in both incoming and ongoing labels and must not decide phase.
     private fun matchesCallText(value: String, phrases: Set<String>): Boolean = phrases.any { phrase ->
-        phrase.length >= 4 && (phrase in value || phrase.split(' ').any { it.length >= 5 && it in value })
+        phrase.length >= 4 && phrase in value
     }
 }
