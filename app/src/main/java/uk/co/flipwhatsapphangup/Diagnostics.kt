@@ -11,6 +11,7 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
+import java.util.Locale
 import java.util.concurrent.Executors
 
 /** Structured, opt-in telemetry. The public build has no Internet permission or endpoint. */
@@ -63,6 +64,7 @@ object Diagnostics {
             put("kind", kind ?: JSONObject.NULL)
             put("angle", angle?.toInt()?.coerceIn(0, 180) ?: JSONObject.NULL)
             put("result", result ?: JSONObject.NULL)
+            put("languageTag", Locale.getDefault().toLanguageTag().take(32))
             put("locked", keyguard.isKeyguardLocked)
             put("interactive", power.isInteractive)
         }

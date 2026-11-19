@@ -8,8 +8,8 @@ android {
         applicationId = "uk.co.flipwhatsapphangup"
         minSdk = 30
         targetSdk = 36
-        versionCode = 40
-        versionName = "0.21"
+        versionCode = 43
+        versionName = "0.22"
         buildConfigField("boolean", "DIAGNOSTICS_BUILD", "false")
         buildConfigField("String", "DIAGNOSTICS_ENDPOINT", "\"\"")
     }
@@ -33,7 +33,7 @@ android {
         create("diagnostics") {
             initWith(getByName("debug"))
             applicationIdSuffix = ".diagnostics"
-            versionNameSuffix = "-diagnostics.4"
+            versionNameSuffix = "-diagnostics.1"
             buildConfigField("boolean", "DIAGNOSTICS_BUILD", "true")
             val endpoint = providers.gradleProperty("pabiDiagnosticsEndpoint").orElse("").get()
             buildConfigField("String", "DIAGNOSTICS_ENDPOINT", "\"$endpoint\"")
@@ -45,6 +45,6 @@ android {
 
 androidComponents {
     onVariants(selector().withBuildType("diagnostics")) { variant ->
-        variant.outputs.forEach { it.versionCode.set(42) }
+        variant.outputs.forEach { it.versionCode.set(44) }
     }
 }

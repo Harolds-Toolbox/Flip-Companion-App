@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS diagnostic_events (
     kind TEXT,
     angle INTEGER,
     result TEXT,
+    language_tag TEXT NOT NULL DEFAULT 'und',
     locked INTEGER NOT NULL,
     interactive INTEGER NOT NULL
 );

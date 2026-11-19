@@ -125,31 +125,30 @@ class CallListener : NotificationListenerService(), SensorEventListener {
             service == CallService.SNAPCHAT && n.channelId == "general_group_silent" ||
             service == CallService.GOOGLE_MEET && n.channelId?.contains("ONGOING_CALL") == true ||
             service == CallService.DISCORD && (n.channelId == "calls" ||
-                n.channelId == "mediaConnections" &&
-                n.extras.getCharSequence(Notification.EXTRA_TITLE)?.contains("call", ignoreCase = true) == true)) &&
-            n.actions?.any { isHangupLabel(it.title?.toString().orEmpty()) } == true
+                n.channelId == "mediaConnections")) &&
+            n.actions?.any { CallLabels.hangup(it.title?.toString().orEmpty()) } == true
     }
     private fun classify(sbn: StatusBarNotification): Call {
         val n = sbn.notification
         val service = CallService.fromPackageName(sbn.packageName) ?: CallService.WHATSAPP
         val text = n.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty().lowercase(Locale.ROOT)
         val title = n.extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty().lowercase(Locale.ROOT)
-        val actions = n.actions?.joinToString { it.title?.toString().orEmpty() }.orEmpty()
-        val actionText = actions.lowercase(Locale.ROOT)
+        val actionTitles = n.actions?.map { it.title?.toString().orEmpty() }.orEmpty()
         val channel = n.channelId.orEmpty().lowercase(Locale.ROOT)
         var kind = when {
             n.extras.getBoolean("android.callIsVideo", false) -> Kind.VIDEO
-            "video" in text || "video" in title -> Kind.VIDEO
+            CallLabels.video(text) || CallLabels.video(title) -> Kind.VIDEO
             "voice" in text || "audio" in text || "voice" in title || "audio" in title -> Kind.AUDIO
-            "video" in actionText || "video" in channel -> Kind.VIDEO
+            actionTitles.any(CallLabels::video) || "video" in channel -> Kind.VIDEO
             else -> Kind.UNKNOWN
         }
         val phase = when {
-            "incoming" in text || "incoming" in channel || "decline" in actionText || "answer" in actionText || "accept" in actionText ||
-                service == CallService.GOOGLE_MEET && "join" in actionText -> Phase.INCOMING
-            "ongoing" in text || service == CallService.MESSENGER && "voip" in channel ||
+            CallLabels.incomingText(text) || "incoming" in channel ||
+                actionTitles.any { CallLabels.decline(it) || CallLabels.answer(it, kind == Kind.VIDEO,
+                    service == CallService.GOOGLE_MEET || service == CallService.DISCORD) } -> Phase.INCOMING
+            CallLabels.ongoingText(text) || service == CallService.MESSENGER && "voip" in channel ||
                 (service == CallService.INSTAGRAM || service == CallService.SNAPCHAT || service == CallService.GOOGLE_MEET || service == CallService.DISCORD) &&
-                n.actions?.any { isHangupLabel(it.title?.toString().orEmpty()) } == true -> Phase.ONGOING
+                actionTitles.any(CallLabels::hangup) -> Phase.ONGOING
             else -> Phase.OUTGOING
         }
         if (phase == Phase.INCOMING && kind != Kind.UNKNOWN) {
@@ -230,8 +229,14 @@ class CallListener : NotificationListenerService(), SensorEventListener {
     private fun answer(c: Call) {
         val action = answerAction(c)
         if (action == null) {
-            State.log(this, "No ${c.service.title} answer notification action")
-            Diagnostics.record(this, "answer_action", c.service, "incoming", c.kind.name.lowercase(Locale.ROOT), result = "missing")
+            val result = if (c.sbn.notification.actions.isNullOrEmpty()) "no_actions" else "unknown_actions"
+            State.log(this, "No ${c.service.title} answer notification action ($result)")
+            Diagnostics.record(this, "answer_action", c.service, "incoming", c.kind.name.lowercase(Locale.ROOT), result = result)
+            if (c.service in listOf(CallService.MESSENGER, CallService.INSTAGRAM, CallService.SNAPCHAT, CallService.GOOGLE_MEET, CallService.DISCORD))
+                retryAnswer(c.sbn.key, c.service)
+            if (c.service == CallService.INSTAGRAM) retryInstagramScreenAnswer(c.sbn.key)
+            if (c.service == CallService.SNAPCHAT) retrySnapchatScreenAnswer(c.sbn.key)
+            if (c.service == CallService.DISCORD) retryDiscordScreenAnswer()
             return
         }
         try {
@@ -280,10 +285,9 @@ class CallListener : NotificationListenerService(), SensorEventListener {
         }, if (attempt == 0) 200L else 250L)
     }
     private fun answerAction(c: Call): Notification.Action? = c.sbn.notification.actions?.firstOrNull {
-            val label = it.title?.toString()?.lowercase(Locale.ROOT)?.trim().orEmpty()
-            label.contains("answer") || label.contains("accept") || c.kind == Kind.VIDEO && label == "video" ||
-                c.service in listOf(CallService.GOOGLE_MEET, CallService.DISCORD) && label.contains("join")
-        }
+        CallLabels.answer(it.title?.toString().orEmpty(), c.kind == Kind.VIDEO,
+            c.service == CallService.GOOGLE_MEET || c.service == CallService.DISCORD)
+    }
     private fun retryAnswer(key: String, service: CallService) {
         mainHandler.postDelayed({
             val current = call
@@ -292,7 +296,8 @@ class CallListener : NotificationListenerService(), SensorEventListener {
             val action = latest?.let { answerAction(current.copy(sbn = it)) }
             if (action == null) {
                 State.log(this, "${service.title} retry: no current Answer action")
-                Diagnostics.record(this, "answer_retry", service, "incoming", current.kind.name.lowercase(Locale.ROOT), result = "missing")
+                Diagnostics.record(this, "answer_retry", service, "incoming", current.kind.name.lowercase(Locale.ROOT),
+                    result = if (latest?.notification?.actions.isNullOrEmpty()) "no_actions" else "unknown_actions")
                 return@postDelayed
             }
             try {
@@ -307,11 +312,9 @@ class CallListener : NotificationListenerService(), SensorEventListener {
             }
         }, 500L)
     }
-    private fun isHangupLabel(label: String): Boolean =
-        listOf("end", "hang up", "hangup", "disconnect", "leave").any { it in label.lowercase(Locale.ROOT) }
     private fun hangup(c: Call): Boolean {
         val action = c.sbn.notification.actions?.firstOrNull {
-            isHangupLabel(it.title?.toString().orEmpty())
+            CallLabels.hangup(it.title?.toString().orEmpty())
         }
         if (action != null) {
             try {
@@ -326,13 +329,17 @@ class CallListener : NotificationListenerService(), SensorEventListener {
                     result = if (e is android.app.PendingIntent.CanceledException) "canceled" else "failed")
             }
         }
+        if (action == null) Diagnostics.record(this, "hangup_action", c.service, "ongoing",
+            c.kind.name.lowercase(Locale.ROOT), result =
+                if (c.sbn.notification.actions.isNullOrEmpty()) "no_actions" else "unknown_actions")
         State.log(this, "No usable notification end action; trying accessibility")
-        if (HangupAccessibility.instance?.tapEndCall(c.service.packageName.orEmpty()) == true) {
-            Diagnostics.record(this, "hangup_accessibility", c.service, "ongoing", c.kind.name.lowercase(Locale.ROOT), result = "clicked")
+        val result = HangupAccessibility.instance?.tapEndCall(c.service.packageName.orEmpty()) ?: "service_off"
+        if (result == "clicked") {
+            Diagnostics.record(this, "hangup_accessibility", c.service, "ongoing", c.kind.name.lowercase(Locale.ROOT), result = result)
             return true
         }
-        State.log(this, "Accessibility could not find end-call button")
-        Diagnostics.record(this, "hangup_accessibility", c.service, "ongoing", c.kind.name.lowercase(Locale.ROOT), result = "missing")
+        State.log(this, "Accessibility could not click end-call button: $result")
+        Diagnostics.record(this, "hangup_accessibility", c.service, "ongoing", c.kind.name.lowercase(Locale.ROOT), result = result)
         return false
     }
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}

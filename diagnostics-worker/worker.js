@@ -5,13 +5,16 @@ const EVENTS = new Set([
   "notification_seen", "call_candidate", "call_cleared", "hinge_monitoring",
   "hinge_closed", "hinge_opened", "answer_trigger", "hangup_trigger",
   "answer_action", "answer_retry", "hangup_action", "hangup_accessibility",
+  "accessibility_connected", "accessibility_disconnected",
 ]);
 const SERVICES = new Set(["whatsapp", "snapchat", "instagram", "messenger", "google_meet", "discord"]);
 const PHASES = new Set(["incoming", "ongoing", "outgoing"]);
 const KINDS = new Set(["audio", "video", "unknown"]);
-const RESULTS = new Set(["available", "missing", "started", "failed", "classified", "unclassified", "sent", "canceled", "clicked"]);
+const RESULTS = new Set(["available", "missing", "started", "failed", "classified", "unclassified", "sent", "canceled", "clicked",
+  "no_actions", "unknown_actions", "service_off", "no_window", "system_window", "wrong_window", "no_button", "click_failed"]);
 const ENVELOPE_KEYS = new Set(["installationId", "appVersion", "androidApi", "deviceModel", "events"]);
-const EVENT_KEYS = new Set(["eventId", "clientTime", "event", "service", "phase", "kind", "angle", "result", "locked", "interactive"]);
+const EVENT_KEYS = new Set(["eventId", "clientTime", "event", "service", "phase", "kind", "angle", "result", "languageTag", "locked", "interactive"]);
+const LEGACY_EVENT_KEYS = new Set([...EVENT_KEYS].filter(key => key !== "languageTag"));
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -47,13 +50,15 @@ function exactKeys(value, allowed) {
 
 function optional(value, set) { return value === null || set.has(value); }
 function validEvent(value) {
-  return exactKeys(value, EVENT_KEYS) && UUID.test(value.eventId) &&
+  return (exactKeys(value, EVENT_KEYS) || exactKeys(value, LEGACY_EVENT_KEYS)) && UUID.test(value.eventId) &&
     Number.isSafeInteger(value.clientTime) &&
     value.clientTime > Date.now() - 31 * 86400000 && value.clientTime < Date.now() + 86400000 &&
     EVENTS.has(value.event) && optional(value.service, SERVICES) &&
     optional(value.phase, PHASES) && optional(value.kind, KINDS) &&
     (value.angle === null || Number.isInteger(value.angle) && value.angle >= 0 && value.angle <= 180) &&
-    optional(value.result, RESULTS) && typeof value.locked === "boolean" &&
+    optional(value.result, RESULTS) && (value.languageTag === undefined ||
+    typeof value.languageTag === "string" && /^[A-Za-z0-9-]{2,32}$/.test(value.languageTag)) &&
+    typeof value.locked === "boolean" &&
     typeof value.interactive === "boolean";
 }
 
@@ -80,11 +85,11 @@ export default {
       await env.DB.batch(payload.events.map(item => env.DB.prepare(
         `INSERT OR IGNORE INTO diagnostic_events
          (event_id, installation_id, client_time_ms, app_version, android_api, device_model,
-          service, event, phase, kind, angle, result, locked, interactive)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          service, event, phase, kind, angle, result, language_tag, locked, interactive)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(item.eventId, payload.installationId, item.clientTime, payload.appVersion,
         payload.androidApi, payload.deviceModel, item.service, item.event, item.phase,
-        item.kind, item.angle, item.result, Number(item.locked), Number(item.interactive))));
+        item.kind, item.angle, item.result, item.languageTag ?? "und", Number(item.locked), Number(item.interactive))));
       return json({ accepted: payload.events.length }, 202);
     }
     if (request.method === "DELETE" && pathname === "/v1/installation") {

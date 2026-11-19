@@ -8,13 +8,22 @@ import android.view.accessibility.AccessibilityNodeInfo
 
 class HangupAccessibility : AccessibilityService() {
     companion object { var instance: HangupAccessibility? = null }
-    override fun onServiceConnected() { instance = this; State.log(this, "Accessibility connected") }
+    override fun onServiceConnected() {
+        instance = this
+        State.log(this, "Accessibility connected")
+        Diagnostics.record(this, "accessibility_connected")
+    }
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
     override fun onInterrupt() {}
-    override fun onDestroy() { instance = null; super.onDestroy() }
-    fun tapEndCall(packageName: String): Boolean {
-        val root = rootInActiveWindow ?: return false
-        if (root.packageName?.toString() != packageName) return false
+    override fun onDestroy() {
+        instance = null
+        Diagnostics.record(this, "accessibility_disconnected")
+        super.onDestroy()
+    }
+    fun tapEndCall(packageName: String): String {
+        val root = rootInActiveWindow ?: return "no_window"
+        if (root.packageName?.toString() != packageName)
+            return if (root.packageName?.toString() == "com.android.systemui") "system_window" else "wrong_window"
         return findAndClick(root)
     }
     fun tapInstagramAnswer(): Boolean {
@@ -23,7 +32,7 @@ class HangupAccessibility : AccessibilityService() {
         val buttons = root.findAccessibilityNodeInfosByViewId(
             "com.instagram.android:id/videocall_ring_answer_button")
         val button = buttons.firstOrNull {
-            it.isClickable && it.isEnabled && it.contentDescription?.toString() == "Answer"
+            it.isClickable && it.isEnabled
         } ?: return false
         val ok = button.performAction(AccessibilityNodeInfo.ACTION_CLICK)
         State.log(this, "Instagram accessibility Answer click=$ok")
@@ -33,7 +42,7 @@ class HangupAccessibility : AccessibilityService() {
         val root = rootInActiveWindow ?: return false
         if (root.packageName?.toString() != CallService.DISCORD.packageName) return false
         val button = root.findAccessibilityNodeInfosByViewId("com.discord:id/acceptCallContainer")
-            .firstOrNull { it.isClickable && it.isEnabled && it.contentDescription?.toString() == "Join Call" }
+            .firstOrNull { it.isClickable && it.isEnabled }
             ?: return false
         val ok = button.performAction(AccessibilityNodeInfo.ACTION_CLICK)
         State.log(this, "Discord accessibility Join Call click=$ok")
@@ -60,17 +69,19 @@ class HangupAccessibility : AccessibilityService() {
         State.log(this, "Snapchat $target gesture=$dispatched at ${x.toInt()},${y.toInt()}")
         return dispatched
     }
-    private fun findAndClick(node: AccessibilityNodeInfo): Boolean {
-        val label = (node.contentDescription?.toString().orEmpty() + " " + node.text?.toString().orEmpty()).lowercase()
-        if (("end call" in label || "hang up" in label) && node.isClickable) {
+    private fun findAndClick(node: AccessibilityNodeInfo): String {
+        val label = node.contentDescription?.toString().orEmpty()
+        val text = node.text?.toString().orEmpty()
+        if ((CallLabels.hangup(label) || CallLabels.hangup(text)) && node.isClickable && node.isEnabled) {
             val ok = node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
             State.log(this, "Accessibility end-call click=$ok label='$label'")
-            return ok
+            return if (ok) "clicked" else "click_failed"
         }
         for (i in 0 until node.childCount) {
             val child = node.getChild(i) ?: continue
-            if (findAndClick(child)) return true
+            val result = findAndClick(child)
+            if (result != "no_button") return result
         }
-        return false
+        return "no_button"
     }
 }

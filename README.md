@@ -2,15 +2,15 @@
 
 Answer or end calls in supported apps by opening or closing your Samsung zFlip phone.
 
-**[Download the Android installer (v0.21)](https://github.com/Harolds-Toolbox/Flip-Phone-Companion/releases/download/v0.21/PABI-Flip-Companion.apk)** · [Phone-friendly install guide](https://harolds-toolbox.github.io/Flip-Phone-Companion/)
+**[Download the Android installer (v0.22)](https://github.com/Harolds-Toolbox/Flip-Phone-Companion/releases/download/v0.22/PABI-Flip-Companion.apk)** · [Phone-friendly install guide](https://harolds-toolbox.github.io/Flip-Phone-Companion/)
 
 The installer is a signed Android APK. Download it **on the phone**, open the downloaded file, and confirm Android's installation prompt. Android may ask you to allow your browser or Files app to install apps. This project is distributed directly while the app is in development.
 
-**Development diagnostics build:** [Download the separate diagnostics APK (v0.21-diagnostics.4)](https://github.com/Harolds-Toolbox/Flip-Phone-Companion/releases/download/v0.21-diagnostics.4/app-diagnostics.apk). This build installs as **PABI Flip Companion Dev** alongside the public app. In the Dev app, turn on **Send diagnostics** to share structured call events with PABI. Sharing starts off. To stop sharing, turn the switch off; **Delete uploaded diagnostics** removes this installation's records from the server. Records are otherwise deleted after 30 days. Caller names, message text, notification text, phone numbers, and audio are not collected. The development APK is signed with a development key, so future builds signed with a different key may require reinstalling it.
+**Development diagnostics build:** [Download the separate diagnostics APK (v0.22-diagnostics.1)](https://github.com/Harolds-Toolbox/Flip-Phone-Companion/releases/download/v0.22-diagnostics.1/app-diagnostics.apk). This build installs as **PABI Flip Companion Dev** alongside the public app. In the Dev app, turn on **Send diagnostics** to share structured call events with PABI. Sharing starts off. To stop sharing, turn the switch off; **Delete uploaded diagnostics** removes this installation's records from the server. Records are otherwise deleted after 30 days. Caller names, message text, notification text, phone numbers, and audio are not collected. The development APK is signed with a development key, so future builds signed with a different key may require reinstalling it.
 
 For a clean call test, give notification access to **only one** companion app at a time. The public and Dev apps have separate settings and permissions.
 
-In both installers, if a calling app does not identify a call as audio or video, the **audio** switches apply. An explicitly identified video call still uses the video switches.
+In both installers, if a calling app does not identify a call as audio or video, the **audio** switches apply. An explicitly identified video call still uses the video switches. Call action labels and video detection recognize Android CallStyle translations across supported system languages. Third-party apps can use their own wording; the Dev build records the device language and whether an action was absent or unrecognized so we can improve coverage without collecting notification text.
 
 ## Set up
 
@@ -33,7 +33,7 @@ The app can act only after the calling app delivers a call notification. It cann
 
 ## Privacy and permissions
 
-Android's notification access permission allows a listener to see notifications broadly. This app's listener filters for supported call notifications and uses their Answer or End action where available. Accessibility is needed to press the in-app Answer control for Instagram, Snapchat, and Discord; it can also be used as a hang-up fallback. The **public release APK** does not have the Android Internet permission or send data to a server. It keeps call state, settings, and limited diagnostics on the device. Raw notification text is not stored in the release build. The separate development diagnostics APK has Internet permission, and sends only the structured fields described above when the user enables sharing.
+Android's notification access permission allows a listener to see notifications broadly. This app's listener filters for supported call notifications and uses their Answer or End action where available. Accessibility is needed to press the in-app Answer control for Instagram, Snapchat, and Discord; it can also be used as a hang-up fallback. The **public release APK** does not have the Android Internet permission or send data to a server. It keeps call state, settings, and limited diagnostics on the device. Raw notification text is not stored in the release build. The separate development diagnostics APK has Internet permission, and sends only structured call events, device model, Android version, and device language when the user enables sharing. It does not send notification or caller text.
 
 PABI Flip Companion is not affiliated with the supported calling services.
 
