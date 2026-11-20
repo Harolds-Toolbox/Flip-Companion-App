@@ -188,7 +188,6 @@ class CallSettingsActivity : Activity() {
     private fun card() = LinearLayout(this).apply {
         setPadding(dp(17), dp(15), dp(17), dp(15))
         background = rounded(p.surface, p.border, 22)
-        elevation = dp(2).toFloat()
     }
     private fun section(text: String) = label(text, 12f, p.accent, Typeface.BOLD).apply { letterSpacing = .12f }
     private fun label(value: String, size: Float, color: Int, weight: Int = Typeface.NORMAL) = TextView(this).apply {

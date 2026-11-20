@@ -8,8 +8,8 @@ android {
         applicationId = "uk.co.flipwhatsapphangup"
         minSdk = 30
         targetSdk = 36
-        versionCode = 45
-        versionName = "0.23"
+        versionCode = 47
+        versionName = "0.24"
         buildConfigField("boolean", "DIAGNOSTICS_BUILD", "false")
         buildConfigField("String", "DIAGNOSTICS_ENDPOINT", "\"\"")
     }
@@ -47,6 +47,6 @@ dependencies { testImplementation("junit:junit:4.13.2") }
 
 androidComponents {
     onVariants(selector().withBuildType("diagnostics")) { variant ->
-        variant.outputs.forEach { it.versionCode.set(46) }
+        variant.outputs.forEach { it.versionCode.set(48) }
     }
 }
