@@ -117,8 +117,7 @@ class MainActivity : Activity() {
             14f, p.muted), spaced(dp(12)))
         row.addView(message, LinearLayout.LayoutParams(0, -2, 1f))
         addView(row)
-        addView(label("Even $1 goes a long way to keep it going.", 14f, p.muted), spaced(dp(18)))
-        addView(label("No pressure, and thanks a lot for using the app!", 14f, p.muted), spaced(dp(18)))
+        addView(label("Even $1 goes a long way. No pressure, and thanks a lot for using the app!", 14f, p.muted), spaced(dp(18)))
     }
 
     private fun diagnosticsCard(): LinearLayout = card().apply {

@@ -2,11 +2,11 @@
 
 Answer or end calls in supported apps by opening or closing your Samsung zFlip phone.
 
-**[Download the Android installer (v0.24)](https://github.com/Harolds-Toolbox/Flip-Phone-Companion/releases/download/v0.24/PABI-Flip-Companion.apk)** · [Phone-friendly install guide](https://harolds-toolbox.github.io/Flip-Phone-Companion/)
+**[Download the Android installer (v0.25)](https://github.com/Harolds-Toolbox/Flip-Phone-Companion/releases/download/v0.25/PABI-Flip-Companion.apk)** · [Phone-friendly install guide](https://harolds-toolbox.github.io/Flip-Phone-Companion/)
 
 The installer is a signed Android APK. Download it **on the phone**, open the downloaded file, and confirm Android's installation prompt. Android may ask you to allow your browser or Files app to install apps. This project is distributed directly while the app is in development.
 
-**Development diagnostics build:** [Download the separate diagnostics APK (v0.24-diagnostics.1)](https://github.com/Harolds-Toolbox/Flip-Phone-Companion/releases/download/v0.24-diagnostics.1/app-diagnostics.apk). This build installs as **PABI Flip Companion Dev** alongside the public app. The diagnostics card sits below Buy me a Coffee. In the Dev app, turn on **Send diagnostics** to share structured call events with PABI. Sharing starts off. To stop sharing, turn the switch off; **Delete uploaded diagnostics** removes this installation's records from the server. Records are otherwise deleted after 30 days. Caller names, message text, notification text, phone numbers, and audio are not collected. The development APK is signed with a development key, so future builds signed with a different key may require reinstalling it.
+**Development diagnostics build:** [Download the separate diagnostics APK (v0.25-diagnostics.1)](https://github.com/Harolds-Toolbox/Flip-Phone-Companion/releases/download/v0.25-diagnostics.1/app-diagnostics.apk). This build installs as **PABI Flip Companion Dev** alongside the public app. The diagnostics card sits below Buy me a Coffee. In the Dev app, turn on **Send diagnostics** to share structured call events with PABI. Sharing starts off. To stop sharing, turn the switch off; **Delete uploaded diagnostics** removes this installation's records from the server. Records are otherwise deleted after 30 days. Caller names, message text, notification text, phone numbers, and audio are not collected. The development APK is signed with a development key, so future builds signed with a different key may require reinstalling it.
 
 For a clean call test, give notification access to **only one** companion app at a time. The public and Dev apps have separate settings and permissions.
 
