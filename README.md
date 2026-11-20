@@ -2,7 +2,7 @@
 
 Answer or end calls in supported apps by opening or closing your Samsung zFlip phone.
 
-**[Download the Android installer (v0.24)](https://github.com/Harolds-Toolbox/Flip-Phone-Companion/releases/download/v0.24/PABI-Flip-Companion.apk?download=1)** · [Phone-friendly install guide](https://harolds-toolbox.github.io/Flip-Phone-Companion/)
+**[Download the Android installer (v0.24)](https://github.com/Harolds-Toolbox/Flip-Phone-Companion/releases/download/v0.24/PABI-Flip-Companion.apk)** · [Phone-friendly install guide](https://harolds-toolbox.github.io/Flip-Phone-Companion/)
 
 The installer is a signed Android APK. Download it **on the phone**, open the downloaded file, and confirm Android's installation prompt. Android may ask you to allow your browser or Files app to install apps. This project is distributed directly while the app is in development.
 
